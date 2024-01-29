@@ -1,6 +1,6 @@
 # RMj
 
-[![Build status](https://ci.appveyor.com/api/projects/status/github/robertroessler/rmj?svg=true)](https://ci.appveyor.com/project/robertroessler/rmj)
+[![Build status](https://ci.appveyor.com/api/projects/status/vk34os2bldqog6u2?svg=true)](https://ci.appveyor.com/project/robertroessler/rmj)
 
 The RMj (rmj) "mini" JSON parser project *can* be seen as YAJP (Yet Another JSON Parser) - OK, it
 probably *will* be seen that way, as it is technically guilty as charged.
@@ -27,7 +27,7 @@ to contain no dependencies (overtly or lurking) on Windows.
 
 ## Details
 
-Since some projects I was working on had need of a simple JSON parser, and didn't
+As I had need of a simple JSON parser, and didn't
 require a whole ecosystem to be imported, I ended up creating rmj to just *be*
 a simple JSON parser (as of RFC 8259) that implements a [static] parse method -
 yielding variant **js_val** objects  - and a **js_val** to_string method which returns
