@@ -24,7 +24,11 @@ int main(int argc, char* argv[])
 
 	// first, create and test js_vals...
 	js_val z{ true };
+	// N.B. - C++ initializer list values that are *numeric* MUST be doubles
 	js_val x{ js_arr{true, false, js_arr{0_js, 1_js}} };
+	// N.B. - this is C++, NOT JavaScript, so "objects" look like pairs when
+	// appearing in initializer lists... in below examples, note lack of ':'
+	// ... while the JSON would look like { "true" : false, "0" : 1.0 }
 	js_val y{ js_obj{{"true", false}, {"0", 1.0}} };
 	js_val a{
 		js_obj{
@@ -54,8 +58,21 @@ int main(int argc, char* argv[])
 	std::cout << "y[\"0\"]=" << y["0"].as_num() << std::endl;
 	std::cout << "x[2][0]=" << x[2][0].as_num() << std::endl;
 	std::cout << "a[\"a\"][4][\"ab\"]=" << a["a"][4]["ab"].as_num() << std::endl;
+	// N.B. - in *assignments* we allow ANY believable *numeric* value when a
+	// [JSON] number is desired, whereas C++ would NOT recognize an integer as a
+	// [JSON] number, but it WOULD allow either nullptrs or bools to act like
+	// numeric values, resulting in different [non-numeric] underlying js_vals!
+	// ... but ALL of the below versions of "42*" result in the SAME js_val
+	x[2][0] = 42;
+	std::cout << "x[2][0]=42, x[2][0]=" << x[2][0].as_num() << std::endl;
+	x[2][0] = 42.0;
+	std::cout << "x[2][0]=42.0, x[2][0]=" << x[2][0].as_num() << std::endl;
 	x[2][0] = 42_js;
 	std::cout << "x[2][0]=42_js, x[2][0]=" << x[2][0].as_num() << std::endl;
+	x[2][0] = 42.0f;
+	std::cout << "x[2][0]=42.0f, x[2][0]=" << x[2][0].as_num() << std::endl;
+	x[2][0] = 42ull;
+	std::cout << "x[2][0]=42ull, x[2][0]=" << x[2][0].as_num() << std::endl;
 
 	// ... how about some parsing and stringifying?
 	const std::string simulated_BOM_1{ "\xef""\xbb""\xbf""1" };

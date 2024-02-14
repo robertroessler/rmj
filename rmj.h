@@ -215,9 +215,19 @@ namespace detail {
 
 	// (Herb Sutter's [presumably] portable "trick" to make compilers shut up)
 	template<class T> void ignore(const T&) {}
+
+	// allow *assignment* of actual *numbers* (which means NO nullptrs or bools)
+	template <class T>
+	concept numeric =
+	(std::integral<T> || std::floating_point<T>) &&
+	!(std::same_as<T, nullptr_t> || std::same_as<T, bool>);
 }
 
 class js_val : public js_val_base {
+	// collections of derived js_val forms, giving access to public methods
+	using js_obj_ext = map<std::string, js_val>;
+	using js_arr_ext = std::vector<js_val>;
+
 public:
 	// various ctors, "converting" and otherwise
 	js_val() = default;
@@ -227,39 +237,41 @@ public:
 
 	constexpr js_val(nullptr_t v) { get_base() = v; }
 	constexpr js_val(bool v) { get_base() = v; }
-	constexpr js_val(double v) { get_base() = v; }
+	// coerce ANY "numeric" value (see detail::numeric concept) to underlying
+	// JSON/js_val numeric type of [IEEE 754] double
+	constexpr js_val(detail::numeric auto v) { get_base() = (double)v; }
 	constexpr js_val(std::string v) { get_base() = v; }
 	/*constexpr*/ js_val(js_obj v) { get_base() = v; }
 	constexpr js_val(js_arr v) { get_base() = v; }
 
 	// query the current type held in our variant / "sum type"
-	constexpr auto is_null() const noexcept { return std::holds_alternative<nullptr_t>(*this); }
-	constexpr auto is_bool() const noexcept { return std::holds_alternative<bool>(*this); }
-	constexpr auto is_num() const noexcept { return std::holds_alternative<double>(*this); }
-	constexpr auto is_string() const noexcept { return std::holds_alternative<std::string>(*this); }
-	constexpr auto is_obj() const noexcept { return std::holds_alternative<js_obj>(*this); }
-	constexpr auto is_arr() const noexcept { return std::holds_alternative<js_arr>(*this); }
+	constexpr auto is_null() const noexcept { return std::holds_alternative<nullptr_t>(get_base()); }
+	constexpr auto is_bool() const noexcept { return std::holds_alternative<bool>(get_base()); }
+	constexpr auto is_num() const noexcept { return std::holds_alternative<double>(get_base()); }
+	constexpr auto is_string() const noexcept { return std::holds_alternative<std::string>(get_base()); }
+	constexpr auto is_obj() const noexcept { return std::holds_alternative<js_obj>(get_base()); }
+	constexpr auto is_arr() const noexcept { return std::holds_alternative<js_arr>(get_base()); }
 
 	// return ref to the requested type in our variant / "sum type"
-	constexpr const auto& as_null() const { return std::get<nullptr_t>(*this); }
-	constexpr auto& as_null() { return std::get<nullptr_t>(*this); }
-	constexpr const auto& as_bool() const { return std::get<bool>(*this); }
-	constexpr auto& as_bool() { return std::get<bool>(*this); }
-	constexpr const auto& as_num() const { return std::get<double>(*this); }
-	constexpr auto& as_num() { return std::get<double>(*this); }
-	constexpr const auto& as_string() const { return std::get<std::string>(*this); }
-	constexpr auto& as_string() { return std::get<std::string>(*this); }
-	/*constexpr const auto& as_obj() const { return std::get<js_obj>(*this); }*/
-	constexpr auto& as_obj() { return std::get<js_obj>(*this); }
-	constexpr const auto& as_arr() const { return get<js_arr>(*this); }
-	constexpr auto& as_arr() { return std::get<js_arr>(*this); }
+	constexpr const auto& as_null() const { return std::get<nullptr_t>(get_base()); }
+	constexpr auto& as_null() { return std::get<nullptr_t>(get_base()); }
+	constexpr const auto& as_bool() const { return std::get<bool>(get_base()); }
+	constexpr auto& as_bool() { return std::get<bool>(get_base()); }
+	constexpr const auto& as_num() const { return std::get<double>(get_base()); }
+	constexpr auto& as_num() { return std::get<double>(get_base()); }
+	constexpr const auto& as_string() const { return std::get<std::string>(get_base()); }
+	constexpr auto& as_string() { return std::get<std::string>(get_base()); }
+	/*constexpr const auto& as_obj() const { return (js_obj_ext&)std::get<js_obj>(get_base()); }*/
+	constexpr auto& as_obj() { return (js_obj_ext&)std::get<js_obj>(get_base()); }
+	constexpr const auto& as_arr() const { return (js_arr_ext&)std::get<js_arr>(get_base()); }
+	constexpr auto& as_arr() { return (js_arr_ext&)std::get<js_arr>(get_base()); }
 
 	// "convenience" operators for element access in js_obj and js_arr collections
 	// N.B. - these will FORCE the map/vector alternatives respectively, be aware!
-	auto& operator[](const std::string& s) { return (js_val&)as_obj()[s]; }
-	auto& operator[](const char* s) { return (js_val&)as_obj()[s]; }
-	constexpr const auto& operator[](int i) const { return (js_val&)as_arr()[i]; }
-	constexpr auto& operator[](int i) { return (js_val&)as_arr()[i]; }
+	auto& operator[](const std::string& s) { return as_obj()[s]; }
+	auto& operator[](const char* s) { return as_obj()[s]; }
+	constexpr const auto& operator[](std::integral auto i) const { return as_arr()[i]; }
+	constexpr auto& operator[](std::integral auto i) { return as_arr()[i]; }
 
 private:
 	// defs supporting the implementation of RMj's parse() and to_string()...
@@ -336,7 +348,7 @@ public:
 			return o;
 		};
 		// return external form of JSON "object"
-		auto string_of_obj = [&](const js_obj& v) {
+		auto string_of_obj = [&](const auto& v) {
 			std::string o;
 			o.reserve(256);
 			o.push_back('{');
@@ -349,7 +361,7 @@ public:
 			return o;
 		};
 		// return external form of JSON "array"
-		auto string_of_arr = [&](const js_arr& v) {
+		auto string_of_arr = [&](const auto& v) {
 			std::string o;
 			o.reserve(256);
 			o.push_back('[');
@@ -373,7 +385,7 @@ public:
 			[&](const std::string&) { return string_of_string(as_string()); },
 			[&](const js_obj&) { return string_of_obj(as_obj()); },
 			[&](const js_arr&) { return string_of_arr(as_arr()); }
-		}, *this);
+		}, get_base());
 	}
 
 	/*

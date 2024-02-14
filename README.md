@@ -54,7 +54,7 @@ the same time, *some* efforts were made to not do a terrible job... the results 
 
 On a 12-th Gen Intel Core i7 12700K, the file pass1.json from the json.org test suite
 is parsed in ~55 microseconds, while to_string serialization of that parsed **js_val**
-requires ~16 microseconds.
+requires ~15 microseconds.
 
 ### JSON -> C++ 20 Type and Value Mapping
 
@@ -68,8 +68,8 @@ sum type:
 | --- | --- |
 | *null* | *nullptr* (nullptr_t) |
 | *true* / *false* | *true* / *false* (bool) |
-| \#json-numeric-value\# | (double) |
-| \#json-string-value\# | (std::string) |
+| *json-numeric-value* | (double) |
+| *json-string-value* | (std::string) |
 | *json-object* | (std\:\:map\<std::string, **js_val**\>) |
 | *json-array* | (std\:\:vector\<**js_val**\>) |
 
