@@ -233,6 +233,7 @@ public:
 	js_val() = default;
 	js_val(const js_val&) = default;
 	constexpr js_val(const js_val_base& v) { get_base() = v; }
+	constexpr js_val(js_val_base& v) { get_base() = v; }
 	constexpr js_val(js_val_base&& v) { get_base() = v; }
 
 	constexpr js_val(nullptr_t v) { get_base() = v; }
@@ -272,6 +273,59 @@ public:
 	auto& operator[](const char* s) { return as_obj()[s]; }
 	constexpr const auto& operator[](std::integral auto i) const { return as_arr()[i]; }
 	constexpr auto& operator[](std::integral auto i) { return as_arr()[i]; }
+
+	// "spaceship" 3-way "recursive" variant comparison operator (from c++20)
+	// N.B. - returns -1, 0, or 1 vs the more esoteric orderings / equalities
+	constexpr auto operator<=>(const js_val& u) const {
+		const auto& t{ *this };
+		// map std *_ordering values to the slightly more useful -1, 0, 1
+		auto to_int = [](auto o) noexcept {
+			if constexpr (std::same_as<decltype(o), std::strong_ordering>) {
+				if (o == std::strong_ordering::less)
+					return -1;
+				else if (o == std::strong_ordering::equal ||
+					o == std::strong_ordering::equivalent)
+					return 0;
+				else // if (o == std::strong_ordering::greater)
+					return 1;
+			} else {
+				if (o == std::partial_ordering::less)
+					return -1;
+				else if (o == std::partial_ordering::equivalent)
+					return 0;
+				else if (o == std::partial_ordering::greater)
+					return 1;
+				else // if (o == std::partial_ordering::unordered)
+					return 0; // (arbitrarily assigned, doesn't imply ordering)
+			}
+		};
+		// Logic for "spaceship" 3-way comparison operator for variants @
+		// https://en.cppreference.com/w/cpp/utility/variant/operator_cmp
+		if (t.valueless_by_exception() && u.valueless_by_exception())
+			return to_int(std::strong_ordering::equal);
+		if (t.valueless_by_exception())
+			return to_int(std::strong_ordering::less);
+		if (u.valueless_by_exception())
+			return to_int(std::strong_ordering::greater);
+		if (t.index() != u.index())
+			return to_int(u.index() <=> t.index());
+		switch (t.index()) {
+		case 0: // nullptr_t
+			return to_int(std::strong_ordering::equal);
+		case 1: // bool
+			return to_int(std::get<1>(t) <=> std::get<1>(u));
+		case 2: // double
+			return to_int(std::get<2>(t) <=> std::get<2>(u));
+		case 3: // std::string
+			return to_int(std::get<3>(t) <=> std::get<3>(u));
+		case 4: // map<std::string, js_val>
+			return to_int((const js_obj_ext&)std::get<4>(t) <=> (const js_obj_ext&)std::get<4>(u));
+		case 5: // std::vector<js_val>>
+			return to_int((const js_arr_ext&)std::get<5>(t) <=> (const js_arr_ext&)std::get<5>(u));
+		default:
+			return to_int(std::partial_ordering::unordered); // (NOT expected)
+		}
+	}
 
 private:
 	// defs supporting the implementation of RMj's parse() and to_string()...

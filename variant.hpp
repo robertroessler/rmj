@@ -97,7 +97,7 @@ class variant : public std::variant<replace_t<T, self_t, variant<T...>>...> {
     }
 
     auto operator<=>(variant const&) const = default;
-    bool operator==(variant const&) const = default;
+    constexpr bool operator==(variant const&) const = default;
 };
 
 // See: https://en.cppreference.com/w/cpp/utility/variant/visit

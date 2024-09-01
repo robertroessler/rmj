@@ -52,6 +52,41 @@ int main(int argc, char* argv[])
 		std::cout << "got double=" << a["b"].as_num() << std::endl;
 	}
 
+	// ... then check out our "spaceship" and [default] == operators...
+	js_val p1{ false }, p2{ false };
+	js_val q1{ false }, q2{ true };
+	js_val r1{ js_obj{{"a", 42_js}} };
+	js_val r2{ js_obj{{"b", 41_js}} };
+	js_val s1{ js_arr{0_js, 1_js, 2_js} };
+	js_val s2{ js_arr{0_js, 1_js, 3_js} };
+	js_val s3{ js_arr{0_js, 1_js, 2_js, 3_js} };
+	js_val s4{ js_arr{0_js, 1_js, 2_js, 1_js + 1_js + 1_js} };
+	js_val s5{ js_arr{9_js} };
+	js_val s6{ js_arr{9_js, "a"} };
+	js_val s7{ js_arr{"a", 9_js} };
+	std::cout << "p1 == p2 -> " << std::boolalpha << (p1 == p2) << std::endl;
+	std::cout << "p1 <=> p2 -> " << (p1 <=> p2) << std::endl;
+	std::cout << "q1 <=> q2 -> " << (q1 <=> q2) << std::endl;
+	std::cout << "r1 == r2 -> " << std::boolalpha << (r1 == r2) << std::endl;
+	std::cout << "r1 <=> r2 -> " << (r1 <=> r2) << std::endl;
+	std::cout << "s1 <=> s2 -> " << (s1 <=> s2) << std::endl;
+	std::cout << "s2 <=> s3 -> " << (s2 <=> s3) << std::endl;
+	std::cout << "s3 <=> s4 -> " << (s3 <=> s4) << std::endl;
+	std::cout << "s1 <=> s4 -> " << (s1 <=> s4) << std::endl;
+	std::cout << "s4 <=> s5 -> " << (s4 <=> s5) << std::endl;
+	std::cout << "s5 <=> s6 -> " << (s5 <=> s6) << std::endl;
+	std::cout << "s6 == s7 -> " << std::boolalpha << (s6 == s7) << std::endl;
+	std::cout << "s6 <=> s7 -> " << (s6 <=> s7) << std::endl;
+
+	// ... check that we can make a "deep" copy of a js_val...
+	const auto x_backup{ x };
+	std::cout << "BEFORE changes to x: x == x_backup -> " << std::boolalpha << (x == x_backup) << std::endl;
+	std::cout << "x[2].as_arr().size()=" << x[2].as_arr().size() << std::endl;
+	x[2].as_arr().push_back(2);
+	std::cout << "x[2].as_arr().size()=" << x[2].as_arr().size() << std::endl;
+	std::cout << "x_backup[2].as_arr().size()=" << x_backup[2].as_arr().size() << std::endl;
+	std::cout << "AFTER changes to x: x == x_backup -> " << std::boolalpha << (x == x_backup) << std::endl;
+
 	// ... then, use the js_val "indexing" operator[] 1- and multi- level...
 	std::cout << "x[0]=" << std::boolalpha << x[0].as_bool() << std::endl;
 	std::cout << "x[1]=" << std::boolalpha << x[1].as_bool() << std::endl;
