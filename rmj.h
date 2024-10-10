@@ -240,8 +240,11 @@ public:
 	constexpr js_val(bool v) { get_base() = v; }
 	// coerce ANY "numeric" value (see detail::numeric concept) to underlying
 	// JSON/js_val numeric type of [IEEE 754] double
-	constexpr js_val(detail::numeric auto v) { get_base() = (double)v; }
+	constexpr js_val(detail::numeric auto v) { get_base() = double(v); }
+	// accept std::strings and string literals...
 	constexpr js_val(std::string v) { get_base() = v; }
+	// ... but also accept std::string_views
+	constexpr js_val(std::string_view v) { get_base() = std::string{ v }; }
 	/*constexpr*/ js_val(js_obj v) { get_base() = v; }
 	constexpr js_val(js_arr v) { get_base() = v; }
 
