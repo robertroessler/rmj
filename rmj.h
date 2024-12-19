@@ -35,7 +35,7 @@
 #include <vector>
 #include <charconv>
 #include <stdexcept>
-#include <type_traits>
+#include <concepts>
 #include "variant.hpp"
 
 namespace rmj {
@@ -173,10 +173,10 @@ namespace detail {
 	template<class WordOutput>
 	constexpr void codePointToUTF16(char32_t c, WordOutput g) {
 		if (c < 0xd800 || (c >= 0xe000 && c < 0x10000))
-			g((wchar_t)c);
+			g((uint16_t)c);
 		else {
 			const unsigned int v = c - 0x10000;
-			g((wchar_t)(0xd800 | (v & 0x3ff))), g((wchar_t)(0xdc00 | (v >> 10)));
+			g((uint16_t)(0xd800 | (v & 0x3ff))), g((uint16_t)(0xdc00 | (v >> 10)));
 		}
 	}
 
@@ -191,13 +191,13 @@ namespace detail {
 		return 0; // ("CAN'T happen")
 	}
 
-	constexpr char32_t codePointFromUTF16(const wchar_t* u) {
+	constexpr char32_t codePointFromUTF16(const uint16_t* u) {
 		return
 			sizeOfUTF16CodeUnits(u[0]) == 1 ? u[0] :
 			((u[0] - 0xd800) << 10) + (u[1] - 0xdc00) + 0x10000;
 	}
 
-	constexpr std::string utf8StringFromUTF16(const wchar_t* u) {
+	constexpr std::string utf8StringFromUTF16(const uint16_t* u) {
 		std::string t;
 		while (*u)
 			codePointToUTF8(codePointFromUTF16(u), [&t](char c) { t.push_back(c); }),
@@ -208,7 +208,7 @@ namespace detail {
 	constexpr std::wstring utf16StringFromUTF8(const char* u) {
 		std::wstring t;
 		while (*u)
-			codePointToUTF16(codePointFromUTF8(u), [&t](wchar_t c) { t.push_back(c); }),
+			codePointToUTF16(codePointFromUTF8(u), [&t](uint16_t c) { t.push_back(c); }),
 			u += sizeOfUTF8CodeUnits(*u);
 		return t;
 	}
@@ -229,24 +229,27 @@ class js_val : public js_val_base {
 	using js_arr_ext = std::vector<js_val>;
 
 public:
-	// various ctors, "converting" and otherwise
+	// various ctors, copying, "converting" and otherwise
 	js_val() = default;
 	js_val(const js_val&) = default;
-	constexpr js_val(const js_val_base& v) { get_base() = v; }
-	constexpr js_val(js_val_base& v) { get_base() = v; }
-	constexpr js_val(js_val_base&& v) { get_base() = v; }
+	js_val(js_val&&) noexcept = default;
+	js_val& operator=(js_val const&) = default;
+	js_val& operator=(js_val&&) noexcept = default;
 
-	constexpr js_val(nullptr_t v) { get_base() = v; }
-	constexpr js_val(bool v) { get_base() = v; }
+	constexpr js_val(const nullptr_t& v) noexcept { get_base() = v; }
+	constexpr js_val(const bool& v) noexcept { get_base() = v; }
 	// coerce ANY "numeric" value (see detail::numeric concept) to underlying
 	// JSON/js_val numeric type of [IEEE 754] double
-	constexpr js_val(detail::numeric auto v) { get_base() = double(v); }
+	constexpr js_val(const detail::numeric auto& v) noexcept { get_base() = double(v); }
 	// accept std::strings and string literals...
-	constexpr js_val(std::string v) { get_base() = v; }
-	// ... but also accept std::string_views
-	constexpr js_val(std::string_view v) { get_base() = std::string{ v }; }
-	/*constexpr*/ js_val(js_obj v) { get_base() = v; }
-	constexpr js_val(js_arr v) { get_base() = v; }
+	constexpr js_val(const std::string& v) { get_base() = v; }
+	constexpr js_val(std::string&& v) noexcept { get_base() = v; }
+	// ... but also accept std::string_views...
+	constexpr js_val(const std::string_view& v) { get_base() = std::string{ v }; }
+	// ... and "classic" NUL-terminated strings
+	constexpr js_val(const char* v) { get_base() = std::string{ v }; }
+	constexpr js_val(const js_obj& v) { get_base() = v; }
+	constexpr js_val(const js_arr& v) { get_base() = v; }
 
 	// query the current type held in our variant / "sum type"
 	constexpr auto is_null() const noexcept { return std::holds_alternative<nullptr_t>(get_base()); }
@@ -266,14 +269,14 @@ public:
 	constexpr const auto& as_string() const { return std::get<std::string>(get_base()); }
 	constexpr auto& as_string() { return std::get<std::string>(get_base()); }
 	/*constexpr const auto& as_obj() const { return (js_obj_ext&)std::get<js_obj>(get_base()); }*/
-	constexpr auto& as_obj() { return (js_obj_ext&)std::get<js_obj>(get_base()); }
+	constexpr auto& as_obj() const { return (js_obj_ext&)std::get<js_obj>(get_base()); }
 	constexpr const auto& as_arr() const { return (js_arr_ext&)std::get<js_arr>(get_base()); }
 	constexpr auto& as_arr() { return (js_arr_ext&)std::get<js_arr>(get_base()); }
 
 	// "convenience" operators for element access in js_obj and js_arr collections
 	// N.B. - these will FORCE the map/vector alternatives respectively, be aware!
-	auto& operator[](const std::string& s) { return as_obj()[s]; }
-	auto& operator[](const char* s) { return as_obj()[s]; }
+	inline auto& operator[](const std::string& s) { return as_obj()[s]; }
+	inline auto& operator[](const char* s) { return as_obj()[s]; }
 	constexpr const auto& operator[](std::integral auto i) const { return as_arr()[i]; }
 	constexpr auto& operator[](std::integral auto i) { return as_arr()[i]; }
 
@@ -282,7 +285,7 @@ public:
 	constexpr auto operator<=>(const js_val& u) const {
 		const auto& t{ *this };
 		// map std *_ordering values to the slightly more useful -1, 0, 1
-		auto to_int = [](auto o) noexcept {
+		constexpr auto to_int = [](auto o) noexcept {
 			if constexpr (std::same_as<decltype(o), std::strong_ordering>) {
 				if (o == std::strong_ordering::less)
 					return -1;
@@ -311,7 +314,7 @@ public:
 		if (u.valueless_by_exception())
 			return to_int(std::strong_ordering::greater);
 		if (t.index() != u.index())
-			return to_int(u.index() <=> t.index());
+			return to_int(t.index() <=> u.index());
 		switch (t.index()) {
 		case 0: // nullptr_t
 			return to_int(std::strong_ordering::equal);
@@ -361,18 +364,46 @@ public:
 		rmj::to_string, appear as their EXACTLY EQUIVALENT utf-8 forms... which MAY
 		include some "control characters" (U+0000 - U+001F) represented as "\u00nn".
 
+		For the "official" v1 release, the above is still true - but NOT as default
+		behavior.  The default is to output any non-ASCII and "control" characters
+		using JSON "escape" sequences... these are fully compatible and equivalent,
+		and defined in the JSON standard referenced above - but always printable.
+		To get the full "UNICODE-encoded-as-UTF-8" behavior for string output, just
+		call the public to_string fn with a bool 'true' parameter.
+
+		An important note on both to_string and parse (below) is that they are based
+		on the C++ library functions std::to_chars and std::from_chars... while this
+		is a Good Thing(tm) - in that "round trips" of JSON numbers (recall these are
+		represented by IEEE 754 64-bit floating point numbers, aka "doubles") will be
+		GUARANTEED to be symmetric - in that numeric values output by RMj will always
+		be a) readable by RMj, and b) they will result in the SAME internal numeric
+		value.  However, what may not match is attempting to compare these displayed
+		values with those output by other methods, such as the conversions performed
+		when outputting (and then inputting) doubles when using the C++ library "std"
+		stream input and output operations.
+
 		As an additional note on "round trips", any JSON text that included a BOM at
 		the beginning was politely accepted, after IGNORING said BOM... and under no
 		circumstances is any attempt made to remember this and include it in the new
 		version of the JSON text produced by to_string, as this would be in violation
 		of RFC 8259 - and a Bad Idea(tm) in general.
 	*/
-	constexpr std::string to_string() {
+	constexpr std::string to_string(bool pass_thru = false) const {
 		using namespace detail;
 		// return external form of JSON "string"
 		auto string_of_string = [&](std::string_view v) {
 			size_t co{};
 			std::string o;
+			auto utf16 = [&](uint16_t c) {
+				char b[]{ '\\', 'u', '0', '0', '0', '0' };
+				const auto s =
+					c < 0x0010 ? 5 :
+					c < 0x0100 ? 4 :
+					c < 0x1000 ? 3 : 2;
+				const auto [p, e] = std::to_chars(b + s, b + 6, c, 16);
+				ignore(p), ignore(e);
+				o.append(b, 6);
+			};
 			o.reserve(256);
 			o.push_back('"');
 			while (co < v.size())
@@ -388,16 +419,16 @@ public:
 					case 0x22: o.append("\\\""sv); break;
 					case 0x5c: o.append("\\\\"sv); break;
 					default:
-						if (c < 0x20) {
-							char b[]{ '\\', 'u', '0', '0', '0', '0' };
-							const auto s = c < 0x10 ? 5 : 4;
-							auto [p, e] = std::to_chars(b + s, b + 6, c, 16);
-							ignore(p), ignore(e);
-							o.append(b, 6);
-						} else
+						if (c < 0x20)
+							utf16(c);
+						else
 							o.push_back(c);
 						break;
 					}
+				} else if (!pass_thru) {
+					// (handle utf-16 Basic Multilingual Plane as well as surrogate pairs)
+					codePointToUTF16(codePointFromUTF8(v.data() + co), utf16);
+					co += n;
 				} else
 					while (n--)
 						o.push_back(v[co++]);
@@ -409,11 +440,13 @@ public:
 			std::string o;
 			o.reserve(256);
 			o.push_back('{');
-			for (const auto& [key, val] : v)
-				o.append(o.size() == 1 ? "\""sv : ",\""sv)
-				.append(key)
-				.append("\":"sv)
-				.append(js_val(val).to_string());
+			for (const auto& [key, val] : v) {
+				if (o.size() > 1)
+					o.push_back(',');
+				o.append(string_of_string(key))
+				.append(":"sv)
+				.append(val.to_string(pass_thru));
+			}
 			o.push_back('}');
 			return o;
 		};
@@ -425,7 +458,7 @@ public:
 			for (const auto& e : v) {
 				if (o.size() > 1)
 					o.push_back(',');
-				o.append(js_val(e).to_string());
+				o.append(e.to_string(pass_thru));
 			}
 			o.push_back(']');
 			return o;
@@ -484,7 +517,7 @@ public:
 			double d{};
 			digits();
 			if (co >= src.size() || is_ws(src[co]) || is_eon(src[co])) {
-				// legal number, i.e., NO leading zero?
+				// legal number, i.e., NO leading zero [on MULTI-digit token]?
 				if (src[start] == '0' && (co - start) > 1)
 					throw std::runtime_error("Bad parse (NUMBER) @ "s + std::to_string(start));
 				// have integral value
@@ -533,7 +566,7 @@ public:
 			auto utf16 = [&]() {
 				if (co + 5 >= src.size())
 					throw std::runtime_error("Bad parse (STRING: invalid utf-16 sequence) @ "s + std::to_string(co - 1));
-				uint16_t u[2];
+				uint16_t u[2]{};
 				++co;
 				const auto [p, e] = std::from_chars(src.data() + co, src.data() + co + 4, u[0], 16);
 				ignore(p), ignore(e);
@@ -547,7 +580,7 @@ public:
 						ignore(p), ignore(e);
 						co += 4;
 					}
-				return codePointFromUTF16((wchar_t*)u);
+				return codePointFromUTF16(u);
 			};
 			std::string o;
 			o.reserve(256);
@@ -685,5 +718,16 @@ public:
 // e.g., js_arr a{0, 1, 2} => js_arr a{0_js, 1_js, 2_js}, whereas
 // e.g., js_arr a{0.0, 1.0, 2.0} is correctly defined/legal as is
 constexpr auto operator""_js(unsigned long long v) noexcept { return (js_num)v; }
+
+// stream output helper for js_vals (so js_vals can appear in "<<"-style output)
+// N.B. - numeric conversions are based on std:to_chars, NOT std::basic_ostream!
+inline std::ostream& operator<<(std::ostream& os, const js_val& v) {
+	return os << v.to_string();
+}
+
+// (less-used version to force "pass_thru" operation of to_string)
+inline std::ostream& operator>>(std::ostream& os, const js_val& v) {
+	return os << v.to_string(true);
+}
 
 }
