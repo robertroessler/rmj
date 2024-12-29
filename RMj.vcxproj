@@ -154,6 +154,7 @@
     <ClCompile Include="t0.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="fast_float.h" />
     <ClInclude Include="rmj.h" />
     <ClInclude Include="variant.hpp" />
   </ItemGroup>

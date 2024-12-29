@@ -26,5 +26,8 @@
     <ClInclude Include="variant.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="fast_float.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

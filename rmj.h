@@ -38,6 +38,27 @@
 #include <concepts>
 #include "variant.hpp"
 
+/*
+	HACK to allow non-conforming "C++20" compilers - which don't actually
+	fully implement the C++17 library function std::from_chars - to still
+	be able to compile the RMj "mini" JSON parser.
+
+	As of December 2024, we know that the Microsoft C++ compiler DOES fully
+	implement this feature, and that neither the LLVM project's Clang nor
+	the Apple Clang compilers do... so we are including (as needed) Daniel
+	Lemire's "fast_float" package to provide this C++17 feature, found at:
+
+	https://github.com/fastfloat/fast_float
+*/
+
+#if defined(_MSVC_LANG) && _MSVC_LANG >= 201703L
+namespace fc = std;
+#else
+#include "fast_float.h"
+
+namespace fc = fast_float;
+#endif /* defined(_MSVC_LANG) && _MSVC_LANG >= 201703L */
+
 namespace rmj {
 
 using namespace std::string_literals;
@@ -521,7 +542,7 @@ public:
 				if (src[start] == '0' && (co - start) > 1)
 					throw std::runtime_error("Bad parse (NUMBER) @ "s + std::to_string(start));
 				// have integral value
-				const auto [p, e] = std::from_chars(src.data() + start, src.data() + co, d);
+				const auto [p, e] = fc::from_chars(src.data() + start, src.data() + co, d);
 				ignore(p), ignore(e);
 				return d;
 			}
@@ -532,7 +553,7 @@ public:
 			}
 			if (co >= src.size() || is_ws(src[co]) || is_eon(src[co])) {
 				// have fixed-point value
-				const auto [p, e] = std::from_chars(src.data() + start, src.data() + co, d);
+				const auto [p, e] = fc::from_chars(src.data() + start, src.data() + co, d);
 				ignore(p), ignore(e);
 				return d;
 			}
@@ -545,7 +566,7 @@ public:
 					throw std::runtime_error("Bad parse (NUMBER) @ "s + std::to_string(co));
 				digits();
 				// have fixed-point value WITH exponent
-				const auto [p, e] = std::from_chars(src.data() + start, src.data() + co, d);
+				const auto [p, e] = fc::from_chars(src.data() + start, src.data() + co, d);
 				ignore(p), ignore(e);
 				return d;
 			}
