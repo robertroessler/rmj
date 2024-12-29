@@ -161,6 +161,12 @@ int main(int argc, char* argv[])
 			<< js_val::parse("{ \"def\" : 42 }") << std::endl;
 		std::cout << "parse(\"{ \"def\" : 42, \"ghi\" : 77 }\") => "
 			<< js_val::parse("{ \"def\" : 42, \"ghi\" : 77 }") << std::endl;
+		std::cout << "parse(\"27\") => " << js_val::parse("27") << std::endl;
+		std::cout << "parse(\"27e0\") => " << js_val::parse("27e0") << std::endl;
+		std::cout << "parse(\"27e-10\") => " << js_val::parse("27e-10") << std::endl;
+		std::cout << "parse(\"2.7e10\") => " << js_val::parse("2.7e10") << std::endl;
+		std::cout << "parse(\"2.7e-10\") => " << js_val::parse("2.7e-10") << std::endl;
+		std::cout << "parse(\"2.7e+10\") => " << js_val::parse("2.7e+10") << std::endl;
 		std::cout << "parse(\"[27]\") => " << js_val::parse("[27]") << std::endl;
 		std::cout << "parse(\"[27,[42]]\") => "
 			<< js_val::parse("[27,[42]]") << std::endl;
@@ -181,20 +187,22 @@ int main(int argc, char* argv[])
 
 		// ... finally, see if we can throw useful exceptions on parsing errors
 		try {
-			std::cout << "parse([1,,])) => "
-				<< std::flush
-				<< js_val::parse("[1,,]") << std::endl;
-		}
-		catch (std::exception& e) {
-			std::cerr << "Exception: " << e.what() << std::endl;
+			js_val::parse("27eNON-NUMBER");
+		} catch (std::exception& e) {
+			std::cerr << "parse(27eNON-NUMBER) => "
+				<< "Exception: " << e.what() << std::endl;
 		}
 		try {
-			std::cout << "parse({\"a\":2,,})) => "
-				<< std::flush
-				<< js_val::parse("{\"a\":2,,}") << std::endl;
+			js_val::parse("[1,,]");
+		} catch (std::exception& e) {
+			std::cerr << "parse([1,,]) => "
+				<< "Exception: " << e.what() << std::endl;
 		}
-		catch (std::exception& e) {
-			std::cerr << "Exception: " << e.what() << std::endl;
+		try {
+			js_val::parse("{\"a\":2,,}");
+		} catch (std::exception& e) {
+			std::cerr << "parse({\"a\":2,,}) => "
+				<< "Exception: " << e.what() << std::endl;
 		}
 	} else
 		// [presumed] JSON file supplied, attempt to read, parse, and print it

@@ -268,10 +268,10 @@ public:
 	constexpr auto& as_num() { return std::get<double>(get_base()); }
 	constexpr const auto& as_string() const { return std::get<std::string>(get_base()); }
 	constexpr auto& as_string() { return std::get<std::string>(get_base()); }
-	/*constexpr const auto& as_obj() const { return (js_obj_ext&)std::get<js_obj>(get_base()); }*/
-	constexpr auto& as_obj() const { return (js_obj_ext&)std::get<js_obj>(get_base()); }
-	constexpr const auto& as_arr() const { return (js_arr_ext&)std::get<js_arr>(get_base()); }
-	constexpr auto& as_arr() { return (js_arr_ext&)std::get<js_arr>(get_base()); }
+	/*inline const auto& as_obj() const { return (js_obj_ext&)std::get<js_obj>(get_base()); }*/
+	inline auto& as_obj() const { return (js_obj_ext&)std::get<js_obj>(get_base()); }
+	inline const auto& as_arr() const { return (js_arr_ext&)std::get<js_arr>(get_base()); }
+	inline auto& as_arr() { return (js_arr_ext&)std::get<js_arr>(get_base()); }
 
 	// "convenience" operators for element access in js_obj and js_arr collections
 	// N.B. - these will FORCE the map/vector alternatives respectively, be aware!
@@ -496,7 +496,7 @@ public:
 		size_t co{}; // ("current offset")
 		// classifier: JSON "whitespace"
 		constexpr auto is_ws = [](auto c) noexcept { return c == ' ' || c == '\n' || c == '\r' || c == '\t'; };
-		// skip over "whitespace", co -> 1st NON-whitespace
+		// skip over POSSIBLE "whitespace", co -> 1st NON-whitespace
 		auto ws = [&]() noexcept {
 			while (co < src.size() && is_ws(src[co]))
 				++co;
@@ -525,8 +525,11 @@ public:
 				ignore(p), ignore(e);
 				return d;
 			}
-			if (src[co] == '.')
+			if (src[co] == '.') {
+				if (++co >= src.size() || !isdigit(src[co]))
+					throw std::runtime_error("Bad parse (NUMBER) @ "s + std::to_string(co));
 				digits();
+			}
 			if (co >= src.size() || is_ws(src[co]) || is_eon(src[co])) {
 				// have fixed-point value
 				const auto [p, e] = std::from_chars(src.data() + start, src.data() + co, d);
@@ -538,7 +541,7 @@ public:
 					throw std::runtime_error("Bad parse (NUMBER) @ "s + std::to_string(co));
 				if (c = src[co]; c == '+' || c == '-')
 					++co;
-				if (co >= src.size() || is_ws(src[co]))
+				if (co >= src.size() || !isdigit(src[co]))
 					throw std::runtime_error("Bad parse (NUMBER) @ "s + std::to_string(co));
 				digits();
 				// have fixed-point value WITH exponent
