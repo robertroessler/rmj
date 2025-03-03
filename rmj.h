@@ -1,7 +1,7 @@
 /*
 	rmj.h - interface (AND implementation) of the RMj "mini" JSON parser
 
-	Copyright(c) 2024, Robert Roessler
+	Copyright(c) 2024-2025, Robert Roessler
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -261,7 +261,6 @@ public:
 
 	// return ref to the requested type in our variant / "sum type"
 	constexpr const auto& as_null() const { return std::get<nullptr_t>(get_base()); }
-	constexpr auto& as_null() { return std::get<nullptr_t>(get_base()); }
 	constexpr const auto& as_bool() const { return std::get<bool>(get_base()); }
 	constexpr auto& as_bool() { return std::get<bool>(get_base()); }
 	constexpr const auto& as_num() const { return std::get<double>(get_base()); }
@@ -275,7 +274,9 @@ public:
 
 	// "convenience" operators for element access in js_obj and js_arr collections
 	// N.B. - these will FORCE the map/vector alternatives respectively, be aware!
+	inline const auto& operator[](const std::string& s) const { return as_obj()[s]; }
 	inline auto& operator[](const std::string& s) { return as_obj()[s]; }
+	inline const auto& operator[](const char* s) const { return as_obj()[s]; }
 	inline auto& operator[](const char* s) { return as_obj()[s]; }
 	constexpr const auto& operator[](std::integral auto i) const { return as_arr()[i]; }
 	constexpr auto& operator[](std::integral auto i) { return as_arr()[i]; }
