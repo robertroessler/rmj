@@ -72,38 +72,42 @@ int main(int argc, char* argv[])
 		js_val s5{ js_arr{9_js} };
 		js_val s6{ js_arr{9_js, "a"} };
 		js_val s7{ js_arr{"a", 9_js} };
-		std::cout << "p1 == p2 => " << std::boolalpha << (p1 == p2) << std::endl;
-		std::cout << "p1 <=> p2 => " << (p1 <=> p2) << std::endl;
-		std::cout << "p1  <  p2 => " << std::boolalpha << (p1 < p2) << std::endl;
-		std::cout << "q1 <=> q2 => " << (q1 <=> q2) << std::endl;
-		std::cout << "q1  <  q2 => " << std::boolalpha << (q1 < q2) << std::endl;
-		std::cout << "r1 == r2 => " << std::boolalpha << (r1 == r2) << std::endl;
-		std::cout << "r1 <=> r2 => " << (r1 <=> r2) << std::endl;
-		std::cout << "r1  <  r2 => " << std::boolalpha << (r1 < r2) << std::endl;
-		std::cout << "s1 <=> s2 => " << (s1 <=> s2) << std::endl;
-		std::cout << "s1  <  s2 => " << std::boolalpha << (s1 < s2) << std::endl;
-		std::cout << "s2 <=> s3 => " << (s2 <=> s3) << std::endl;
-		std::cout << "s2  <  s3 => " << std::boolalpha << (s2 < s3) << std::endl;
-		std::cout << "s3 <=> s4 => " << (s3 <=> s4) << std::endl;
-		std::cout << "s3  <  s4 => " << std::boolalpha << (s3 < s4) << std::endl;
-		std::cout << "s1 <=> s4 => " << (s1 <=> s4) << std::endl;
-		std::cout << "s1  <  s4 => " << std::boolalpha << (s1 < s4) << std::endl;
-		std::cout << "s4 <=> s5 => " << (s4 <=> s5) << std::endl;
-		std::cout << "s4  <  s5 => " << std::boolalpha << (s4 < s5) << std::endl;
-		std::cout << "s5 <=> s6 => " << (s5 <=> s6) << std::endl;
-		std::cout << "s5  <  s6 => " << std::boolalpha << (s5 < s6) << std::endl;
-		std::cout << "s6 == s7 => " << std::boolalpha << (s6 == s7) << std::endl;
-		std::cout << "s6 <=> s7 => " << (s6 <=> s7) << std::endl;
-		std::cout << "s6  <  s7 => " << std::boolalpha << (s6 < s7) << std::endl;
+		// (we only need to do this once)
+		std::cout << std::boolalpha;
+		std::cout << "p1 == p2 -> " << (p1 == p2) << std::endl;
+		std::cout << "p1 <=> p2 -> " << (p1 <=> p2) << std::endl;
+		std::cout << "p1  <  p2 -> " << (p1 < p2) << std::endl;
+		std::cout << "q1 == q2 -> " << (q1 == q2) << std::endl;
+		std::cout << "q1 <=> q2 -> " << (q1 <=> q2) << std::endl;
+		std::cout << "q1  <  q2 -> " << (q1 < q2) << std::endl;
+		std::cout << "r1 == r2 -> " << (r1 == r2) << std::endl;
+		std::cout << "r1 <=> r2 -> " << (r1 <=> r2) << std::endl;
+		std::cout << "r1  <  r2 -> " << (r1 < r2) << std::endl;
+		std::cout << "s1 == s2 -> " << (s1 == s2) << std::endl;
+		std::cout << "s1 <=> s2 -> " << (s1 <=> s2) << std::endl;
+		std::cout << "s1  <  s2 -> " << (s1 < s2) << std::endl;
+		std::cout << "s2 <=> s3 -> " << (s2 <=> s3) << std::endl;
+		std::cout << "s2  <  s3 -> " << (s2 < s3) << std::endl;
+		std::cout << "s3 <=> s4 -> " << (s3 <=> s4) << std::endl;
+		std::cout << "s3  <  s4 -> " << (s3 < s4) << std::endl;
+		std::cout << "s1 <=> s4 -> " << (s1 <=> s4) << std::endl;
+		std::cout << "s1  <  s4 -> " << (s1 < s4) << std::endl;
+		std::cout << "s4 <=> s5 -> " << (s4 <=> s5) << std::endl;
+		std::cout << "s4  <  s5 -> " << (s4 < s5) << std::endl;
+		std::cout << "s5 <=> s6 -> " << (s5 <=> s6) << std::endl;
+		std::cout << "s5  <  s6 -> " << (s5 < s6) << std::endl;
+		std::cout << "s6 == s7 -> " << (s6 == s7) << std::endl;
+		std::cout << "s6 <=> s7 -> " << (s6 <=> s7) << std::endl;
+		std::cout << "s6  <  s7 -> " << (s6 < s7) << std::endl;
 
 		// ... check that we can make a "deep" copy of a js_val...
 		const auto x_backup{ x };
-		std::cout << "BEFORE changes to x: x == x_backup => " << std::boolalpha << (x == x_backup) << std::endl;
+		std::cout << "BEFORE changes to x: x == x_backup -> " << (x == x_backup) << std::endl;
 		std::cout << "x[2].as_arr().size()=" << x[2].as_arr().size() << std::endl;
 		x[2].as_arr().push_back(2);
 		std::cout << "x[2].as_arr().size()=" << x[2].as_arr().size() << std::endl;
 		std::cout << "x_backup[2].as_arr().size()=" << x_backup[2].as_arr().size() << std::endl;
-		std::cout << "AFTER changes to x: x == x_backup => " << std::boolalpha << (x == x_backup) << std::endl;
+		std::cout << "AFTER changes to x: x == x_backup -> " << (x == x_backup) << std::endl;
 
 		// ... then, use the js_val "indexing" operator[] 1- and multi- level...
 		std::cout << "x[0]=" << x[0] << std::endl;
@@ -129,79 +133,98 @@ int main(int argc, char* argv[])
 
 		// ... how about some parsing and stringifying?
 		const std::string simulated_BOM_1{ "\xef""\xbb""\xbf""1" };
-		std::cout << "parse(simulated_BOM_1) => "
+		std::cout << "parse(simulated_BOM_1) -> "
 			<< js_val::parse(simulated_BOM_1) << std::endl;
-		std::cout << "parse(null) => " << js_val::parse("null") << std::endl;
-		std::cout << "parse(true) => " << js_val::parse("true") << std::endl;
-		std::cout << "parse(1) => " << js_val::parse("1") << std::endl;
-		std::cout << "parse(-1) => " << js_val::parse("-1") << std::endl;
-		std::cout << "parse(1.2) => " << js_val::parse("1.2") << std::endl;
-		std::cout << "parse(1.2e3) => " << js_val::parse("1.2e3") << std::endl;
-		std::cout << "parse(\"hello\") => "
+		std::cout << "parse(null) -> " << js_val::parse("null") << std::endl;
+		std::cout << "parse(true) -> " << js_val::parse("true") << std::endl;
+		std::cout << "parse(1) -> " << js_val::parse("1") << std::endl;
+		std::cout << "parse(-1) -> " << js_val::parse("-1") << std::endl;
+		std::cout << "parse(1.2) -> " << js_val::parse("1.2") << std::endl;
+		std::cout << "parse(1.2e3) -> " << js_val::parse("1.2e3") << std::endl;
+		std::cout << "parse(\"hello\") -> "
 			<< js_val::parse("\"hello\"") << std::endl;
-		std::cout << "parse(\"[ 1.2, 3.4 ]\") => "
+		std::cout << "parse(\"[ 1.2, 3.4 ]\") -> "
 			<< js_val::parse("[ 1.2, 3.4 ]") << std::endl;
 
 		// ... with "we're not in Kansas anymore" UTF-8...
-		std::cout << "parse(null) => " << js_val::parse("null") << std::endl;
-		std::cout << "parse(false) => " << js_val::parse("false") << std::endl;
-		std::cout << "parse(true) => " << js_val::parse("true") << std::endl;
-		std::cout << "parse(2.34) => " << js_val::parse("2.34") << std::endl;
-		std::cout << "parse(\"abc\") => " << js_val::parse("\"abc\"") << std::endl;
-		std::cout << "parse([]) => " << js_val::parse("[]") << std::endl;
-		std::cout << "parse({}) => " << js_val::parse("{}") << std::endl;
+		std::cout << "parse(null) -> " << js_val::parse("null") << std::endl;
+		std::cout << "parse(false) -> " << js_val::parse("false") << std::endl;
+		std::cout << "parse(true) -> " << js_val::parse("true") << std::endl;
+		std::cout << "parse(2.34) -> " << js_val::parse("2.34") << std::endl;
+		std::cout << "parse(\"abc\") -> " << js_val::parse("\"abc\"") << std::endl;
+		std::cout << "parse([]) -> " << js_val::parse("[]") << std::endl;
+		std::cout << "parse({}) -> " << js_val::parse("{}") << std::endl;
 		const auto not_kansas{ "\"我能吞下玻璃而不伤身体\"" };
 		std::cout << "pass_thru default of false:" << std::endl
 			<< "\tparse(" << not_kansas << ").to_string()" << std::endl
-			<< "\t=> " << js_val::parse(not_kansas) << std::endl;
+			<< "\t-> " << js_val::parse(not_kansas) << std::endl;
 		std::cout << "pass_thru set to true:" << std::endl
 			<< "\tparse(" << not_kansas << ").to_string(true)" << std::endl
-			<< "\t=> " >> js_val::parse(not_kansas) << std::endl;
-		std::cout << "parse(\"{ \"def\" : 42 }\") => "
+			<< "\t-> " << std::setw(pass_thru) << js_val::parse(not_kansas) << std::endl;
+		std::cout << "parse(\"{ \"def\" : 42 }\") -> "
 			<< js_val::parse("{ \"def\" : 42 }") << std::endl;
-		std::cout << "parse(\"{ \"def\" : 42, \"ghi\" : 77 }\") => "
+		std::cout << "parse(\"{ \"def\" : 42, \"ghi\" : 77 }\") -> "
 			<< js_val::parse("{ \"def\" : 42, \"ghi\" : 77 }") << std::endl;
-		std::cout << "parse(\"27\") => " << js_val::parse("27") << std::endl;
-		std::cout << "parse(\"27e0\") => " << js_val::parse("27e0") << std::endl;
-		std::cout << "parse(\"27e-10\") => " << js_val::parse("27e-10") << std::endl;
-		std::cout << "parse(\"2.7e10\") => " << js_val::parse("2.7e10") << std::endl;
-		std::cout << "parse(\"2.7e-10\") => " << js_val::parse("2.7e-10") << std::endl;
-		std::cout << "parse(\"2.7e+10\") => " << js_val::parse("2.7e+10") << std::endl;
-		std::cout << "parse(\"[27]\") => " << js_val::parse("[27]") << std::endl;
-		std::cout << "parse(\"[27,[42]]\") => "
+		std::cout << "parse(\"27\") -> " << js_val::parse("27") << std::endl;
+		std::cout << "parse(\"27e0\") -> " << js_val::parse("27e0") << std::endl;
+		std::cout << "parse(\"27e-10\") -> " << js_val::parse("27e-10") << std::endl;
+		std::cout << "parse(\"2.7e10\") -> " << js_val::parse("2.7e10") << std::endl;
+		std::cout << "parse(\"2.7e-10\") -> " << js_val::parse("2.7e-10") << std::endl;
+		std::cout << "parse(\"2.7e+10\") -> " << js_val::parse("2.7e+10") << std::endl;
+		std::cout << "parse(\"[27]\") -> " << js_val::parse("[27]") << std::endl;
+		std::cout << "parse(\"[27,[42]]\") -> "
 			<< js_val::parse("[27,[42]]") << std::endl;
 
 		// ... wrap up the UTF-8 with some escapes...
-		std::cout << R"(parse("\u0041BC") => )"
+		std::cout << R"(parse("\u0041BC") -> )"
 			<< js_val::parse("\"\\u0041BC\"") << std::endl;
-		std::cout << R"(parse("a\uD800\uDC00c") => )"
-			<< js_val::parse("\"a\\uD800\\uDC00c\"") << std::endl;
-		std::cout << R"(parse("a\u0807\u0808c") => )"
-			<< js_val::parse("\"a\\u0807\\u0808c\"") << std::endl;
-		std::cout << "parse(\"<values-to-escape>\") => "
+		const auto ev1{ R"("a\uD800\uDC00c")" };
+		std::cout << "parse(" << ev1 << ") -> "
+			<< js_val::parse(ev1) << " or [with pass_thru] "
+			<< std::setw(pass_thru) << js_val::parse(ev1) << std::endl;
+		const auto ev2{ R"("a\u0807\u0808c")" };
+		std::cout << "parse(" << ev2 << ") -> "
+			<< js_val::parse(ev2) << " or [with pass_thru] "
+			<< std::setw(pass_thru) << js_val::parse(ev2) << std::endl;
+		std::cout << "parse(\"<values-to-escape>\") -> "
 			<< js_val::parse("\"\\b\\f\\n\\t\"") << std::endl;
-		std::cout << "parse(\"<values-to-escape>\") => "
+		std::cout << "parse(\"<values-to-escape>\") -> "
 			<< js_val::parse("\"\\u0000\"") << std::endl;
-		std::cout << "parse(\"<values-to-escape>\") => "
+		std::cout << "parse(\"<values-to-escape>\") -> "
 			<< js_val::parse("\"\\u0020\"") << std::endl;
+
+#ifndef NO_FORMAT
+		// ... let's see some of that again using our std::format support...
+		std::cout <<
+			std::format("show parse results using std::format:\n");
+		std::cout <<
+			std::format("\tparse(\"[ 1.2, 3.4 ]\")\n\t-> {}\n",
+				js_val::parse("[ 1.2, 3.4 ]"));
+		std::cout <<
+			std::format("\tparse(\"我能吞下玻璃而不伤身体\") [using \"default\" stringify]\n\t-> {}\n",
+				js_val::parse("\"我能吞下玻璃而不伤身体\""));
+		std::cout <<
+			std::format("\tparse(\"我能吞下玻璃而不伤身体\") [using \"pass_thru\" stringify]\n\t-> {:_}\n",
+				js_val::parse("\"我能吞下玻璃而不伤身体\""));
+#endif
 
 		// ... finally, see if we can throw useful exceptions on parsing errors
 		try {
 			js_val::parse("27eNON-NUMBER");
 		} catch (std::exception& e) {
-			std::cerr << "parse(27eNON-NUMBER) => "
+			std::cerr << "parse(27eNON-NUMBER) -> "
 				<< "Exception: " << e.what() << std::endl;
 		}
 		try {
 			js_val::parse("[1,,]");
 		} catch (std::exception& e) {
-			std::cerr << "parse([1,,]) => "
+			std::cerr << "parse([1,,]) -> "
 				<< "Exception: " << e.what() << std::endl;
 		}
 		try {
 			js_val::parse("{\"a\":2,,}");
 		} catch (std::exception& e) {
-			std::cerr << "parse({\"a\":2,,}) => "
+			std::cerr << "parse({\"a\":2,,}) -> "
 				<< "Exception: " << e.what() << std::endl;
 		}
 	} else
@@ -235,7 +258,7 @@ int main(int argc, char* argv[])
 				<< "mus" << std::endl;
 			std::cout << text2 << std::endl;
 		} catch (std::exception& e) {
-			std::cerr << "rmj::parse => exception, 'what()'="
+			std::cerr << "rmj::parse -> exception, 'what()'="
 				<< e.what() << std::endl;
 		}
 }

@@ -29,6 +29,11 @@
 
 #pragma once
 
+// uncomment one or both of the below to remove I/O / std::format dependencies
+// N.B. - the test/sample code in t0.cpp is heavily dependent on STREAM output
+//#define NO_STREAM 1
+//#define NO_FORMAT 1
+
 #include <string>
 #include <string_view>
 #include <map>
@@ -36,6 +41,13 @@
 #include <charconv>
 #include <stdexcept>
 #include <concepts>
+#ifndef NO_STREAM
+#include <ostream>
+#include <ios>
+#endif
+#ifndef NO_FORMAT
+#include <format>
+#endif
 #include "variant.hpp"
 
 namespace rmj {
@@ -173,10 +185,10 @@ namespace detail {
 	template<class WordOutput>
 	constexpr void codePointToUTF16(char32_t c, WordOutput g) {
 		if (c < 0xd800 || (c >= 0xe000 && c < 0x10000))
-			g((uint16_t)c);
+			g((char16_t)c);
 		else {
 			const unsigned int v = c - 0x10000;
-			g((uint16_t)(0xd800 | (v & 0x3ff))), g((uint16_t)(0xdc00 | (v >> 10)));
+			g((char16_t)(0xd800 | (v & 0x3ff))), g((char16_t)(0xdc00 | (v >> 10)));
 		}
 	}
 
@@ -191,13 +203,13 @@ namespace detail {
 		return 0; // ("CAN'T happen")
 	}
 
-	constexpr char32_t codePointFromUTF16(const uint16_t* u) {
+	constexpr char32_t codePointFromUTF16(const char16_t* u) {
 		return
 			sizeOfUTF16CodeUnits(u[0]) == 1 ? u[0] :
 			((u[0] - 0xd800) << 10) + (u[1] - 0xdc00) + 0x10000;
 	}
 
-	constexpr std::string utf8StringFromUTF16(const uint16_t* u) {
+	constexpr std::string utf8StringFromUTF16(const char16_t* u) {
 		std::string t;
 		while (*u)
 			codePointToUTF8(codePointFromUTF16(u), [&t](char c) { t.push_back(c); }),
@@ -205,10 +217,10 @@ namespace detail {
 		return t;
 	}
 
-	constexpr std::wstring utf16StringFromUTF8(const char* u) {
-		std::wstring t;
+	constexpr std::u16string utf16StringFromUTF8(const char* u) {
+		std::u16string t;
 		while (*u)
-			codePointToUTF16(codePointFromUTF8(u), [&t](uint16_t c) { t.push_back(c); }),
+			codePointToUTF16(codePointFromUTF8(u), [&t](char16_t c) { t.push_back(c); }),
 			u += sizeOfUTF8CodeUnits(*u);
 		return t;
 	}
@@ -320,17 +332,41 @@ public:
 		case 0: // nullptr_t
 			return to_int(std::strong_ordering::equal);
 		case 1: // bool
-			return to_int(std::get<1>(t) <=> std::get<1>(u));
+			return to_int(get<1>(t) <=> get<1>(u));
 		case 2: // double
-			return to_int(std::get<2>(t) <=> std::get<2>(u));
+			return to_int(get<2>(t) <=> get<2>(u));
 		case 3: // std::string
-			return to_int(std::get<3>(t) <=> std::get<3>(u));
+			return to_int(get<3>(t) <=> get<3>(u));
 		case 4: // map<std::string, js_val>
-			return to_int((const js_obj_ext&)std::get<4>(t) <=> (const js_obj_ext&)std::get<4>(u));
+			return to_int((const js_obj_ext&)get<4>(t) <=> (const js_obj_ext&)get<4>(u));
 		case 5: // std::vector<js_val>>
-			return to_int((const js_arr_ext&)std::get<5>(t) <=> (const js_arr_ext&)std::get<5>(u));
+			return to_int((const js_arr_ext&)get<5>(t) <=> (const js_arr_ext&)get<5>(u));
 		default:
 			return to_int(std::partial_ordering::unordered); // (NOT expected)
+		}
+	}
+	// ... along with the accompanying explicit definition for operator==
+	constexpr bool operator==(const js_val& u) const {
+		const auto& t{ *this };
+		if (t.valueless_by_exception() || u.valueless_by_exception())
+			return t.valueless_by_exception() && u.valueless_by_exception();
+		if (t.index() != u.index())
+			return false;
+		switch (t.index()) {
+		case 0: // nullptr_t
+			return true;
+		case 1: // bool
+			return get<1>(t) == get<1>(u);
+		case 2: // double
+			return get<2>(t) == get<2>(u);
+		case 3: // std::string
+			return get<3>(t) == get<3>(u);
+		case 4: // map<std::string, js_val>
+			return get<4>(t) == get<4>(u);
+		case 5: // std::vector<js_val>>
+			return get<5>(t) == get<5>(u);
+		default:
+			return false; // (NOT expected)
 		}
 	}
 
@@ -395,14 +431,13 @@ public:
 		auto string_of_string = [&](std::string_view v) {
 			size_t co{};
 			std::string o;
-			auto utf16 = [&](uint16_t c) {
+			auto utf16 = [&](char16_t c) {
 				char b[]{ '\\', 'u', '0', '0', '0', '0' };
 				const auto s =
 					c < 0x0010 ? 5 :
 					c < 0x0100 ? 4 :
 					c < 0x1000 ? 3 : 2;
-				const auto [p, e] = std::to_chars(b + s, b + 6, c, 16);
-				ignore(p), ignore(e);
+				ignore(std::to_chars(b + s, b + 6, c, 16));
 				o.append(b, 6);
 			};
 			o.reserve(256);
@@ -522,8 +557,7 @@ public:
 				if (src[start] == '0' && (co - start) > 1)
 					throw std::runtime_error("Bad parse (NUMBER) @ "s + std::to_string(start));
 				// have integral value
-				const auto [p, e] = std::from_chars(src.data() + start, src.data() + co, d);
-				ignore(p), ignore(e);
+				ignore(std::from_chars(src.data() + start, src.data() + co, d));
 				return d;
 			}
 			if (src[co] == '.') {
@@ -533,8 +567,7 @@ public:
 			}
 			if (co >= src.size() || is_ws(src[co]) || is_eon(src[co])) {
 				// have fixed-point value
-				const auto [p, e] = std::from_chars(src.data() + start, src.data() + co, d);
-				ignore(p), ignore(e);
+				ignore(std::from_chars(src.data() + start, src.data() + co, d));
 				return d;
 			}
 			if (auto c = src[co]; c == 'e' || c == 'E') {
@@ -546,8 +579,7 @@ public:
 					throw std::runtime_error("Bad parse (NUMBER) @ "s + std::to_string(co));
 				digits();
 				// have fixed-point value WITH exponent
-				const auto [p, e] = std::from_chars(src.data() + start, src.data() + co, d);
-				ignore(p), ignore(e);
+				ignore(std::from_chars(src.data() + start, src.data() + co, d));
 				return d;
 			}
 			throw std::runtime_error("Bad parse (NUMBER) @ "s + std::to_string(co));
@@ -564,24 +596,23 @@ public:
 				return js_val{ false };
 			throw std::runtime_error("Bad parse ([unexpected] KEYWORD) @ "s + std::to_string(start));
 		};
-		// parse JSON "string", converting to utf-8 encoding
+		// parse JSON "string", converting to internal utf-8 "-friendly" form
 		auto string = [&]() {
 			// (handle utf-16 Basic Multilingual Plane as well as surrogate pairs)
+			// N.B. - std::from_chars doesn't [yet] support char16_t as a "target"
 			auto utf16 = [&]() {
 				if (co + 5 >= src.size())
 					throw std::runtime_error("Bad parse (STRING: invalid utf-16 sequence) @ "s + std::to_string(co - 1));
-				uint16_t u[2]{};
+				char16_t u[2]{};
 				++co;
-				const auto [p, e] = std::from_chars(src.data() + co, src.data() + co + 4, u[0], 16);
-				ignore(p), ignore(e);
+				ignore(std::from_chars(src.data() + co, src.data() + co + 4, (uint16_t&)u[0], 16));
 				co += 4;
 				if (sizeOfUTF16CodeUnits(u[0]) > 1)
 					if (co + 6 >= src.size() || src[co] != '\\' || src[co + 1] != 'u')
 						throw std::runtime_error("Bad parse (STRING: invalid utf-16 surrogate pair) @ "s + std::to_string(co));
 					else {
 						co += 2;
-						const auto [p, e] = std::from_chars(src.data() + co, src.data() + co + 4, u[1], 16);
-						ignore(p), ignore(e);
+						ignore(std::from_chars(src.data() + co, src.data() + co + 4, (uint16_t&)u[1], 16));
 						co += 4;
 					}
 				return codePointFromUTF16(u);
@@ -670,8 +701,8 @@ public:
 							throw std::runtime_error("Bad parse (OBJECT: expected STRING) @ "s + std::to_string(co));
 						else if (const auto u = next_token(); !has_state(u) || state(u) != obj_colon)
 							throw std::runtime_error("Bad parse (OBJECT: expected ':') @ "s + std::to_string(co));
-						const auto v = (++co, parse_impl(parse_impl));
-						mr.try_emplace(val(t).as_string(), v);
+						auto v = (++co, parse_impl(parse_impl));
+						mr.try_emplace(val(t).as_string(), std::move(v));
 						if (t = next_token(); has_state(t) && state(t) == end_object)
 							break;
 					} while (has_state(t) && state(t) == more_items);
@@ -691,8 +722,8 @@ public:
 							break;
 						else if (has_state(t) && (state(t) != in_object && state(t) != in_array))
 							throw std::runtime_error("Bad parse (expected VALUE) @ "s + std::to_string(co));
-						const auto v = has_val(t) ? val(t) : parse_impl(parse_impl);
-						ar.emplace_back(v);
+						auto v = has_val(t) ? val(t) : parse_impl(parse_impl);
+						ar.push_back(std::move(v));
 						if (t = next_token(); has_state(t) && state(t) == end_array)
 							break;
 					} while (has_state(t) && state(t) == more_items);
@@ -723,15 +754,48 @@ public:
 // e.g., js_arr a{0.0, 1.0, 2.0} is correctly defined/legal as is
 constexpr auto operator""_js(unsigned long long v) noexcept { return (js_num)v; }
 
+#ifndef NO_STREAM
+const auto pass_thru = 42; // (used to enable "pass_thru" in js_val operator<<)
+
 // stream output helper for js_vals (so js_vals can appear in "<<"-style output)
-// N.B. - numeric conversions are based on std:to_chars, NOT std::basic_ostream!
+// N.B. - numeric conversions are based on std::to_chars, NOT std::basic_ostream
+// N.B.2 - to force "pass_thru" operation of the to_string call, use the input /
+// output manipulator "helper" function std::setw, with the value rmj::pass_thru
+//
+// example:
+// os << std::setw(rmj::pass_thru) << rmj::parse("a\u0807\u0808c") << std::endl;
 inline std::ostream& operator<<(std::ostream& os, const js_val& v) {
-	return os << v.to_string();
+	const auto w{ os.width() };
+	// (if using "pass_thru" mode, field width control is really a non-issue)
+	if (w == pass_thru)
+		os.width(0);
+	return os << v.to_string(w == pass_thru);
+}
+#endif
+
 }
 
-// (less-used version to force "pass_thru" operation of to_string)
-inline std::ostream& operator>>(std::ostream& os, const js_val& v) {
-	return os << v.to_string(true);
+#ifndef NO_FORMAT
+// custom c++20 "formatter" for use with rmj::js_val values
+// N.B. - use '_' format specifier to invoke "pass_thru" operation of to_string!
+//
+// example:
+// os << std::format("{:_}\n", rmj::parse("a\u0807\u0808c"));
+namespace std {
+	template<>
+	struct formatter<rmj::js_val> : formatter<string_view> {
+		bool pass_thru{};
+		constexpr auto parse(format_parse_context& ctx) {
+			auto it{ ctx.begin() };
+			if (it != ctx.end() && *it == '_')
+				pass_thru = true, ++it;
+			if (it != ctx.end() && *it != '}')
+				throw format_error("invalid format specifier for js_val!");
+			return it;
+		}
+		auto format(const rmj::js_val& v, format_context& ctx) const {
+			return formatter<string_view>::format(v.to_string(pass_thru), ctx);
+		}
+	};
 }
-
-}
+#endif

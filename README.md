@@ -31,7 +31,7 @@ As I had need of a simple JSON parser, and didn't
 require a whole ecosystem to be imported, I ended up creating rmj to just *be*
 a simple JSON parser (as of RFC 8259) that implements a [static] **js_val\:\:parse** method -
 yielding variant **js_val** objects  - and a **js_val\:\:to_string** method which serializes
-to a **std\:\:string**.
+a **js_val** to a **std\:\:string**.
 
 The **parse** method  
 
@@ -59,38 +59,68 @@ appear in the serialized output (excepting the required "always-escaped" control
 other RFC 8259-defined special characters).
 
 But wait, there's more added for "v1": to make it easier to write code to display **js_val**
-objects, the following two operators are also supplied (both based on the new, more nuanced
-**to_string**_):
+objects, the following operator<< *plus* std::format "formatter" are also supplied (both based on the new, more nuanced
+**to_string**):
 
 (signature: **inline std\:\:ostream& operator<<(std\:\:ostream&, const js_val&)**)
 
-(signature: **inline std\:\:ostream& operator>>(std\:\:ostream&, const js_val&)**)
+To "stringify" stream output using operator<<:
 
-While these both use **to_string** to serialize their **js_val** to an output **std\:\:ostream**,
-the former uses the default ("all non-ASCII is escaped") mode, resulting in guaranteed
-printable output, while the latter uses the ("pass-through") mode, resulting in *pure* UTF-8.
+[output-stream] << rmj\:\:parse("我能吞下玻璃而不伤身体") << std\:\:endl;
 
-Finally, for completeness, a C++ 20 "spaceship" **operator<=>** is supplied  
+... to invoke "stringify" in "pass_thru", use the i/o stream manipulator helper std::setw(rmj\:\:pass_thru):
 
-(signature: **constexpr auto operator<=>(const js_val&) const**)  
+[output-stream] << std\:\:setw(rmj\:\:pass_thru) << rmj\:\:parse("我能吞下玻璃而不伤身体") << std\:\:endl;
+
+To "stringify" a type-checked **js_val** using std\:\:format, simply include the **js_val** in the
+format call's parameter list:
+
+[output-stream] << std\:\:format("\{\}\n", "我能吞下玻璃而不伤身体");
+
+...to invoke "stringify" in "pass_thru", include the '_' format specifier:
+
+[output-stream] << std\:\:format("\{:_\}\n", "我能吞下玻璃而不伤身体");
+
+While all of these use **to_string** to serialize their **js_val** to an output **std\:\:ostream**,
+the former in each pair uses the default ("all non-ASCII is escaped") mode, resulting in guaranteed
+printable output, while the latter uses the ("pass-through") mode, resulting in *pure* UTF-8
+\- which may or may not be printable.
+
+Finally, for completeness, a C++ 20 "spaceship" **operator<=>**
+as well as a "deep compare" **operator==** are supplied  
+
+(signature: **constexpr auto operator<=>(const js_val&) const**)
 
 which is able to compare two **js_val** objects and return the results as a "three-way"
 comparison, with *-1, 0, 1* representing the left-hand **js_val** object being *less than*,
 *equal to*, or *greater than* the right-hand **js_val** object.
 
+(signature: **constexpr bool operator==(const js_val&) const**)
+
+which performs a "recursive deep compare" on two **js_val** objects, returning a simple bool.
+
 ## More Details
 
 ### C++ [20] Language Issues
 
-Note that the supplied **operator<=>** is in addition to the [defaulted] **operator==**,
-and that using just these two, the C++ compiler is able to synthesize all of the "secondary"
-comparison operators: **<, <=, !=, >=, >**... so we don't need to write them.
+Note that with **only** the supplied **operator<=>** *and* **operator==** functionality,
+the C++ 20 compiler is able to synthesize all of the "secondary"
+comparison operators: **<, \<=, !=, >=, >**... so we don't need to write them.
 
-A word on the "choice" of the **operator>>** for "pass-through UTF-8 mode" stream output:
-because of the limited availability of C++ operators for overloading to begin with, combined
-with *any* other operator *not* having the same precedence / directional associativity as
-**operator<<**, and we arrive at this operator usage... if something better presents itself -
-or is suggested - this could change.
+### Dependencies
+
+If for some reason use of either (or both) of the standard library's stream output or
+type-checked text-formatting capabilities are not wanted, references to either (or both)
+are easily removed (along with inclusion of their associated header files) by using the
+following old-school *defined* values:
+
+**NO_STREAM** definition of this value results in the operator<< def for **js_val** *not* being included
+
+**NO_FORMAT** definition of this value results in the std\:\:format formatter for **js_val** *not* being included
+
+Note that the definitions of these two symbols are present near the top of rmj.h, but in
+"commented" form.  Also, as is mentioned in the source, removing stream support will be
+problematic for the included test/demo file t0.cpp.
 
 ### Performance
 
@@ -98,8 +128,8 @@ While no "exotic" attempts were made to break any JSON parsing speed records, at
 the same time, *some* efforts were made to not do a terrible job... the results are:
 
 On a 12-th Gen Intel Core i7 12700K, the 1.4 KB file pass1.json from the json.org test suite
-is parsed in ~49 microseconds, while **to_string** serialization of that parsed **js_val**
-requires ~14 microseconds.
+is parsed in ~50 microseconds, while **to_string** serialization of that parsed **js_val**
+requires ~15 microseconds.
 
 ### JSON -> C++ 20 Type and Value Mapping
 
@@ -122,6 +152,18 @@ sum type:
 
 As mentioned above, a "header-only library" is supplied, consisting of the local
 file "rmj.h" in conjunction with the imported file "variant.hpp".
+
+At least as of the end of 2024, there were still some non-conforming "C\+\+20" compilers
+which don't actually fully implement the C\+\+17 library function std\:\:from_chars... while
+there are some fairly heavy-weight workarounds that re-implement the float support
+from std::from_chars, it was decided to *not* commit any of these to this repo - if you
+are really stuck with an older "almost C\+\+20" compiler, feel free to open an issue on the subject.
+
+Also, again depending on the exact version and what is supported in your "C\+\+20" compiler,
+there is a slight chance of an issue with the declaration of the "format" method in the
+formatter for **js_val** params... a workaround is detailed in
+https://github.com/llvm/llvm-project/issues/66466), which basically replaces the
+std\:\:format_context param with a new template param, *e.g.*, FormatContext.
 
 While the rmj.h header does implement the basic parsing and serializing described
 above - plus some helper functions to make C++ use a little friendlier, the real
