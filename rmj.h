@@ -1,7 +1,7 @@
 /*
 	rmj.h - interface (AND implementation) of the RMj "mini" JSON parser
 
-	Copyright(c) 2024-2025, Robert Roessler
+	Copyright(c) 2024-2026, Robert Roessler
 	All rights reserved.
 
 	Redistribution and use in source and binary forms, with or without
@@ -431,14 +431,14 @@ public:
 		auto string_of_string = [&](std::string_view v) {
 			size_t co{};
 			std::string o;
-			auto utf16 = [&](char16_t c) {
+			auto utf16 = [&o](char16_t c) {
 				char b[]{ '\\', 'u', '0', '0', '0', '0' };
 				const auto s =
 					c < 0x0010 ? 5 :
 					c < 0x0100 ? 4 :
 					c < 0x1000 ? 3 : 2;
-				ignore(std::to_chars(b + s, b + 6, c, 16));
-				o.append(b, 6);
+				ignore(std::to_chars(b + s, b + std::size(b), c, 16));
+				o.append(b, std::size(b));
 			};
 			o.reserve(256);
 			o.push_back('"');
@@ -504,7 +504,7 @@ public:
 			[&](nullptr_t) { return "null"s; },
 			[&](bool) { return as_bool() ? "true"s : "false"s; },
 			[&](double) {
-				char b[24];
+				char b[32];
 				const auto [p, e] = std::to_chars(b, b + std::size(b), as_num());
 				return std::string{ b, p };
 			},

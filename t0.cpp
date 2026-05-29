@@ -28,8 +28,8 @@ int main(int argc, char* argv[])
 		js_val z_2 = z_z;
 		std::cout << "z_2=" << z_2 << " (results of assignment z_2 = z_z)" << std::endl;
 		js_val z_3 = std::move(z_z);
+		// N.B. - post "move", z_z's VALUE is undefined - including z_z.empty()!
 		std::cout << "z_3=" << z_3 << " (results of z_3 = std::move(z_z))" << std::endl;
-		std::cout << "z_z=" << z_z << " (EMPTY after std::move assignment)" << std::endl;
 		// N.B. - C++ initializer list values that are *numeric* MUST be doubles
 		js_val x{ js_arr{true, false, js_arr{0_js, 1_js}} };
 		// N.B. - this is C++, NOT JavaScript, so "objects" look like pairs when

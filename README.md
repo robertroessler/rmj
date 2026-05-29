@@ -75,11 +75,11 @@ To "stringify" stream output using operator<<:
 To "stringify" a type-checked **js_val** using std\:\:format, simply include the **js_val** in the
 format call's parameter list:
 
-[output-stream] << std\:\:format("\{\}\n", "我能吞下玻璃而不伤身体");
+[output-stream] << std\:\:format("\{\}\n", rmj\:\:parse("我能吞下玻璃而不伤身体"));
 
 ...to invoke "stringify" in "pass_thru", include the '_' format specifier:
 
-[output-stream] << std\:\:format("\{:_\}\n", "我能吞下玻璃而不伤身体");
+[output-stream] << std\:\:format("\{:_\}\n", rmj\:\:parse("我能吞下玻璃而不伤身体"));
 
 While all of these use **to_string** to serialize their **js_val** to an output **std\:\:ostream**,
 the former in each pair uses the default ("all non-ASCII is escaped") mode, resulting in guaranteed
